@@ -17,7 +17,12 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.json()); //req.body
-//multer
+app.use(
+  cors({
+    origin: "https://traveluttarakhand.netlify.app",
+  })
+);
+//multeradd
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
