@@ -23,11 +23,11 @@ app.use(express.urlencoded({extended: false}));
 app.use(cors());
 app.use(express.json()); //req.body
 
-// app.use(
-//   cors({
-//     origin: "https://traveluttarakhand.netlify.app",
-//   })
-// );
+app.use(
+  cors({
+    origin: "https://traveluttarakhand.netlify.app",
+  })
+);
 //Storeing image into uploads folder using multer and changing image name using Date.now() to prevent same name
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
