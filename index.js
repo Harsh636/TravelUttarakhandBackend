@@ -16,17 +16,21 @@ const app = express();
 
 
 // middleware
+
 app.use('/uploads', express.static('uploads'));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.urlencoded({extended: false}));
 app.use(cors());
-app.use(express.json()); //req.body
+app.use(express.json());
 
 app.use(
   cors({
     origin: "https://traveluttarakhand.netlify.app",
+    methods: ['GET', 'POST'],
   })
 );
+app.use('/images', express.static('./uploads'));
+
 //Storeing image into uploads folder using multer and changing image name using Date.now() to prevent same name
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -121,7 +125,7 @@ app.get("/treks", async (req, res) => {
     const treksWithImageUrls = allTracks.rows.map(trek => {
       return {
         ...trek,
-        image: `https://traveluttarakhandbackend.onrender.com/${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
+        image: `https://traveluttarakhandbackend.onrender.com/uploads/${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
       };
     });
 
@@ -187,8 +191,8 @@ app.get("/trekdetails/:id", async (req, res) => {
       trekType,
       dayHighlight,
       dayExplain,
-      banner: `https://traveluttarakhandbackend.onrender.com/${details.banner.replace(/\\/g, '/')}`,
-      mainImage: `https://traveluttarakhandbackend.onrender.com/${details.mainimage.replace(/\\/g, '/')}`,
+      banner: `https://traveluttarakhandbackend.onrender.com/uploads/${details.banner.replace(/\\/g, '/')}`,
+      mainImage: `https://traveluttarakhandbackend.onrender.com/uploads/${details.mainimage.replace(/\\/g, '/')}`,
     };
 
     console.log(responseData); // For debugging
