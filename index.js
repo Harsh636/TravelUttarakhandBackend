@@ -5,6 +5,7 @@ import multer from "multer";
 import db from "./db.js";
 import dotenv from "dotenv";
 import sharp from "sharp";
+import path from "path";
 
 dotenv.config();
 
@@ -13,27 +14,38 @@ const port = process.env.PORT || 5000;
 // create app
 const app = express();
 
+
+
 // middleware
+app.use('/uploads', express.static('uploads'));
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({extended: false}));
 app.use(cors());
 app.use(express.json()); //req.body
-app.use(
-  cors({
-    origin: "https://traveluttarakhand.netlify.app",
-  })
-);
-//multeradd
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+// app.use(
+//   cors({
+//     origin: "https://traveluttarakhand.netlify.app",
+//   })
+// );
+//Storeing image into uploads folder using multer and changing image name using Date.now() to prevent same name
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./uploads"); 
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({storage: storage});
 
 db.connect();
 
 // create a track
-app.post(
-  "/new-trek",
-  upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]),
-  async (req, res) => {
+app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]), async (req, res) => { 
+  const imagePath = req.files.image ? req.files.image[0].path : null;
+  const bannerPath = req.files.banner ? req.files.banner[0].path : null;
+  const mainImagePath = req.files.mainImage ? req.files.mainImage[0].path : null;
     try {
       const {
         name,
@@ -53,45 +65,9 @@ app.post(
         season,
         trek_type,
       } = req.body;
-
-      console.log("Incoming data:", req.body);
-      console.log("Uploaded files:", req.files);
-
-      // Check if image exists
-      const imageData = req.files.image ? req.files.image[0].buffer : null;
-      if (!imageData) {
-        return res.status(400).send("Image data is required.");
-      }
-      const webpImageBuffer = await sharp(imageData)
-        .webp({ quality: 100 })
-        .toBuffer();
-
-      // Check if banner exists
-      const bannerImage = req.files.banner ? req.files.banner[0].buffer : null;
-      const webpBanner = bannerImage
-        ? await sharp(bannerImage).webp({ quality: 100 }).toBuffer()
-        : null;
-
-      // Check if mainImage exists
-      const mainImage = req.files.mainImage
-        ? req.files.mainImage[0].buffer
-        : null;
-      const webpMainImage = mainImage
-        ? await sharp(mainImage).webp({ quality: 100 }).toBuffer()
-        : null;
-
-      // Validation for required images
-      if (!webpImageBuffer) {
-        return res.status(400).send("The main trek image is required.");
-      }
-      if (!webpBanner || !webpMainImage) {
-        return res
-          .status(400)
-          .send("Both the banner and main image are required.");
-      }
-
+      
       const insertQuery = `
-      INSERT INTO treks (name, duration, difficulty, realPrice, discountedPrice, image, banner, mainImage, heading, details, overview, highlight, itinerary)
+      INSERT INTO treks (name, duration, difficulty, realprice, discountedprice, image, banner, mainimage, heading, details, overview, highlight, itinerary)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *;
       `;
@@ -101,13 +77,11 @@ app.post(
         difficulty,
         parseFloat(realPrice),
         parseFloat(discountedPrice),
-        webpImageBuffer,
-        webpBanner,
-        webpMainImage,
+        imagePath,
+        bannerPath,
+        mainImagePath,
         heading,
         JSON.stringify({
-          duration,
-          difficulty,
           altitude,
           distance,
           transportation,
@@ -135,84 +109,31 @@ app.post(
   }
 );
 
-// // set track details
-// app.post("/new-trek-details", upload.fields([{ name: 'banner' }, { name: 'mainImage' }]), async (req, res) => {
-//   try {
-//     const {
-//       name,
-//       heading,
-//       overview,
-//       highlight,
-//       itinerary,
-//       itinerary_details,
-//       duration,
-//       difficulty,
-//       altitude,
-//       distance,
-//       transportation,
-//       meals,
-//       season,
-//       trek_type,
-//     } = req.body;
-//     const bannerImage = req.files.banner ? req.files.banner[0].buffer : null;
-//     const webpBanner = await sharp(bannerImage)
-//       .webp({ quality: 100 }) // Optional: Set quality (0-100)
-//       .toBuffer();
-//     const mainImage = req.files.mainImage ? req.files.mainImage[0].buffer : null;
-//     const webpMainImage = await sharp(mainImage)
-//       .webp({ quality: 100 }) // Optional: Set quality (0-100)
-//       .toBuffer();
-//     if (!webpBanner || !webpMainImage) {
-//       return res.status(400).send("Both banner and mainImage images are required");
-//     }
-
-//     const insertQuery = `
-//     INSERT INTO trekdetails (banner, mainImage, name, heading, details, overview, highlight, itinerary)
-//     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-//     RETURNING *;
-//     `;
-//     const values = [
-//       webpBanner,
-//       webpMainImage,
-//       name,
-//       heading,
-//       `{"duration": "${duration}","difficulty":"${difficulty}", "altitude":"${altitude}", "distance":"${distance}", "transportation":"${transportation}", "meals":"${meals}", "bestSeason":"${season}", "trekType":"${trek_type}"}`,
-//       overview,
-//       highlight,
-//       `{"dayHighlight": "${itinerary}", "dayExplain": "${itinerary_details}"}`,
-//     ];
-
-//     const result = await db.query(insertQuery, values);
-//     console.log(result.rows[0]);
-//     res.status(200).json(result.rows[0]);
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send("Error occurred while uploading the track.");
-//   }
-// });
 
 // GET ALL TRACK
 app.get("/treks", async (req, res) => {
   try {
+    // Fetch all treks from the database
     const allTracks = await db.query(
-      "SELECT id, name, duration, difficulty, realPrice, discountedPrice, image FROM treks"
+      "SELECT id, name, duration, difficulty, realprice, discountedprice, image FROM treks"
     );
 
-    // Convert the image buffer to a Base64 string
-    const tracksWithBase64Images = allTracks.rows.map((track) => {
+    // Map the results to include the full image URL
+    const treksWithImageUrls = allTracks.rows.map(trek => {
       return {
-        ...track,
-        image: track.image
-          ? `data:image/jpeg;base64,${track.image.toString("base64")}`
-          : null, // Convert buffer to Base64 string
+        ...trek,
+        image: `http://localhost:5000/${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
       };
     });
-    res.json(tracksWithBase64Images);
+
+    console.log(treksWithImageUrls); // Check the transformed data
+    res.json(treksWithImageUrls); // Send the response
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Error fetching tracks.");
   }
 });
+
 
 // GET TREK DETAILS
 
@@ -224,7 +145,7 @@ app.get("/trekdetails/:id", async (req, res) => {
   try {
     // Query to fetch trek details based on ID
     const trekDetailsQuery = `
-      SELECT id, banner, mainimage, name, heading, details, overview, highlight, itinerary FROM treks WHERE id = $1;
+      SELECT id, banner, mainimage, name, duration, difficulty, heading, details, overview, highlight, itinerary FROM treks WHERE id = $1;
     `;
     const values = [id]; // Pass the trek ID to the query
     const result = await db.query(trekDetailsQuery, values); // Execute query
@@ -235,13 +156,10 @@ app.get("/trekdetails/:id", async (req, res) => {
 
     // Get the single trek detail
     const details = result.rows[0];
-    console.log(details);
     const trekDetails = details.details;
     const trekit = details.itinerary;
     // Destructure the nested objects
     const {
-      duration,
-      difficulty,
       altitude,
       distance,
       transportation,
@@ -252,13 +170,6 @@ app.get("/trekdetails/:id", async (req, res) => {
 
     const { dayHighlight, dayExplain } = trekit; // Assuming details.itinerary is an object
     // console.log(details.mainImage);
-    // Convert image to Base64 format
-    const bannerbase64Image = details.banner
-      ? `data:banner/jpeg;base64,${details.banner.toString("base64")}`
-      : null; // Handle case where image might be null
-    const mainBase64Image = details.mainimage // Ensure this matches your DB column
-      ? `data:image/jpeg;base64,${details.mainimage.toString("base64")}`
-      : null;
 
     // Create a response object
     const responseData = {
@@ -267,8 +178,8 @@ app.get("/trekdetails/:id", async (req, res) => {
       heading: details.heading,
       overview: details.overview,
       highlight: details.highlight,
-      duration,
-      difficulty,
+      duration: details.duration,
+      difficulty: details.difficulty,
       altitude,
       distance,
       transportation,
@@ -277,11 +188,11 @@ app.get("/trekdetails/:id", async (req, res) => {
       trekType,
       dayHighlight,
       dayExplain,
-      banner: bannerbase64Image,
-      mainImage: mainBase64Image,
+      banner: `http://localhost:5000/${details.banner.replace(/\\/g, '/')}`,
+      mainImage: `http://localhost:5000/${details.mainimage.replace(/\\/g, '/')}`,
     };
 
-    // console.log(responseData); // For debugging
+    console.log(responseData); // For debugging
     res.json(responseData); // Return the trek details as JSON
   } catch (err) {
     console.error("Error fetching trek details:", err.message);
