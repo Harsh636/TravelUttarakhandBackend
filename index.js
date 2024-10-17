@@ -4,8 +4,7 @@ import bodyParser from "body-parser";
 import multer from "multer";
 import db from "./db.js";
 import dotenv from "dotenv";
-import sharp from "sharp";
-import path from "path";
+
 
 dotenv.config();
 
@@ -126,7 +125,7 @@ app.get("/treks", async (req, res) => {
       };
     });
 
-    console.log(treksWithImageUrls); // Check the transformed data
+    // console.log(treksWithImageUrls); // Check the transformed data
     res.json(treksWithImageUrls); // Send the response
   } catch (err) {
     console.error(err.message);
@@ -150,9 +149,9 @@ app.get("/trekdetails/:id", async (req, res) => {
     const values = [id]; // Pass the trek ID to the query
     const result = await db.query(trekDetailsQuery, values); // Execute query
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Trek details not found" });
-    }
+    // if (result.rows.length === 0) {
+    //   return res.status(404).json({ error: "Trek details not found" });
+    // }
 
     // Get the single trek detail
     const details = result.rows[0];
