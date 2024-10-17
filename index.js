@@ -121,7 +121,7 @@ app.get("/treks", async (req, res) => {
     const treksWithImageUrls = allTracks.rows.map(trek => {
       return {
         ...trek,
-        image: `http://localhost:5000/${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
+        image: `https://traveluttarakhandbackend.onrender.com/${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
       };
     });
 
@@ -149,9 +149,9 @@ app.get("/trekdetails/:id", async (req, res) => {
     const values = [id]; // Pass the trek ID to the query
     const result = await db.query(trekDetailsQuery, values); // Execute query
 
-    // if (result.rows.length === 0) {
-    //   return res.status(404).json({ error: "Trek details not found" });
-    // }
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Trek details not found" });
+    }
 
     // Get the single trek detail
     const details = result.rows[0];
@@ -187,8 +187,8 @@ app.get("/trekdetails/:id", async (req, res) => {
       trekType,
       dayHighlight,
       dayExplain,
-      banner: `http://localhost:5000/${details.banner.replace(/\\/g, '/')}`,
-      mainImage: `http://localhost:5000/${details.mainimage.replace(/\\/g, '/')}`,
+      banner: `https://traveluttarakhandbackend.onrender.com/${details.banner.replace(/\\/g, '/')}`,
+      mainImage: `https://traveluttarakhandbackend.onrender.com/${details.mainimage.replace(/\\/g, '/')}`,
     };
 
     console.log(responseData); // For debugging
@@ -222,109 +222,3 @@ app.listen(port, () => {
   console.log(`Server has started on port ${port}...`);
 });
 
-// import express from "express";
-// import cors from "cors";
-// import bodyParser from "body-parser";
-// import multer from "multer";
-// import db from "./db.js";
-// import dotenv from "dotenv";
-
-// dotenv.config(); // Load environment variables
-
-// const port = process.env.PORT || 5000; // Use environment variable for port
-
-// // create app
-// const app = express();
-
-// // middleware
-// app.use(bodyParser.urlencoded({ extended: true }));
-// app.use(cors());
-// app.use(express.json());
-
-// // multer setup
-// const storage = multer.memoryStorage();
-// const upload = multer({ storage: storage });
-
-// db.connect();
-
-// // routes
-
-// // create a track
-// app.post("/new-track", upload.single("image"), async (req, res) => {
-//   try {
-//     const { name, duration, difficulty, realPrice, discountedPrice } = req.body;
-//     const image = req.file;
-
-//     if (!image) {
-//       return res.status(400).send("Image file is required");
-//     }
-//     const imageData = image.buffer;
-
-//     const insertQuery = `
-//       INSERT INTO tracks (name, duration, difficulty, realPrice, discountedPrice, image)
-//       VALUES ($1, $2, $3, $4, $5, $6)
-//       RETURNING *;
-//     `;
-//     const values = [
-//       name,
-//       duration,
-//       difficulty,
-//       parseFloat(realPrice),
-//       parseFloat(discountedPrice),
-//       imageData,
-//     ];
-
-//     const result = await db.query(insertQuery, values);
-//     res.status(201).json(result.rows[0]); // Use 201 for created resource
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send("Error occurred while uploading the track.");
-//   }
-// });
-
-// // GET ALL TRACKS
-// app.get("/tracks", async (req, res) => {
-//   try {
-//     const allTracks = await db.query("SELECT * FROM tracks");
-
-//     // Convert the image buffer to a Base64 string
-//     const tracksWithBase64Images = allTracks.rows.map(track => ({
-//       ...track,
-//       image: track.image ? `data:image/jpeg;base64,${track.image.toString('base64')}` : null,
-//     }));
-
-//     res.json(tracksWithBase64Images);
-//   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send("Error fetching tracks.");
-//   }
-// });
-
-// // Update track (uncomment if needed)
-// // app.put("/track/:id", async (req, res) => {
-// //   const { id } = req.params;
-// //   const { name } = req.body;
-// //   try {
-// //     await db.query("UPDATE tracks SET name = $1 WHERE id = $2", [name, id]);
-// //     res.json("Track updated.");
-// //   } catch (err) {
-// //     console.error(err.message);
-// //     res.status(500).send("Error updating track.");
-// //   }
-// // });
-
-// // Delete track (uncomment if needed)
-// // app.delete("/track/:id", async (req, res) => {
-// //   const { id } = req.params;
-// //   try {
-// //     await db.query("DELETE FROM tracks WHERE id = $1", [id]);
-// //     res.json("Track deleted.");
-// //   } catch (err) {
-// //     console.error(err.message);
-// //     res.status(500).send("Error deleting track.");
-// //   }
-// // });
-
-// app.listen(port, () => {
-//   console.log(`Server has started on port ${port}...`);
-// });
