@@ -42,10 +42,12 @@ db.connect();
 
 // Create a new trek
 app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]), async (req, res) => {
+  console.log(req.get('host'))
   try {
-    const imagePath = req.files.image ? req.files.image[0].path : null;
-    const bannerPath = req.files.banner ? req.files.banner[0].path : null;
-    const mainImagePath = req.files.mainImage ? req.files.mainImage[0].path : null;
+    
+    const imagePath = req.files.image ? `${req.protocol}://${req.get('host')}/uploads/${req.files.image[0].path.replace(/\\/g, '/')}` : null;
+    const bannerPath = req.files.banner ? `${req.protocol}://${req.get('host')}/uploads/${req.files.banner[0].path.replace(/\\/g, '/')}` : null;
+    const mainImagePath = req.files.mainImage ? `${req.protocol}://${req.get('host')}/uploads/${req.files.mainImage[0].path.replace(/\\/g, '/')}` : null;
 
     const {
       name,
@@ -112,12 +114,8 @@ app.get("/treks", async (req, res) => {
       "SELECT id, name, duration, difficulty, realprice, discountedprice, image FROM treks"
     );
 
-    const treksWithImageUrls = allTreks.rows.map(trek => ({
-      ...trek,
-      image: `https://traveluttarakhandbackend.onrender.com/uploads/${trek.image.replace(/\\/g, '/')}`,
-    }));
 
-    res.json(treksWithImageUrls);
+    res.json(allTreks);
   } catch (err) {
     console.error("Error fetching treks:", err.message);
     res.status(500).json({ error: "Error fetching treks." });
@@ -171,8 +169,8 @@ app.get("/trekdetails/:id", async (req, res) => {
       trekType,
       dayHighlight,
       dayExplain,
-      banner: `https://traveluttarakhandbackend.onrender.com/${details.banner.replace(/\\/g, '/')}`,
-      mainImage: `https://traveluttarakhandbackend.onrender.com/${details.mainimage.replace(/\\/g, '/')}`,
+      banner: details.banner,
+      mainImage: details.mainimage,
     };
 
     res.json(responseData);
