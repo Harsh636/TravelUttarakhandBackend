@@ -6,6 +6,11 @@ import db from "./db.js";
 import dotenv from "dotenv";
 import sharp from "sharp";
 import path from "path";
+import fs from "fs";
+
+const uploadsDir = path.join(__dirname, 'uploads');
+
+
 
 dotenv.config();
 
@@ -26,13 +31,17 @@ app.use(cors()); // Enable CORS for all origins
 app.use(express.json()); // Parse JSON bodies
 
 // Multer storage configuration for handling file uploads
+// Create the uploads directory if it does not exist
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "./uploads"); // Specify the upload directory
+      cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    // Use Date.now() to prevent file name collisions
-    cb(null, `${Date.now()}-${file.originalname}`);
+      cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 const upload = multer({ storage: storage });
