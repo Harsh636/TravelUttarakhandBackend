@@ -237,7 +237,7 @@ app.get("/treks", async (req, res) => {
     const treksWithImageUrls = allTracks.rows.map(trek => {
       return {
         ...trek,
-        image: `https://traveluttarakhandbackend.onrender.com/${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
+        image: `${trek.image.replace(/\\/g, '/')}` // Convert backslashes to forward slashes
       };
     });
 
@@ -303,8 +303,8 @@ app.get("/trekdetails/:id", async (req, res) => {
       trekType,
       dayHighlight,
       dayExplain,
-      banner: `https://traveluttarakhandbackend.onrender.com/${details.banner.replace(/\\/g, '/')}`,
-      mainImage: `https://traveluttarakhandbackend.onrender.com/${details.mainimage.replace(/\\/g, '/')}`,
+      banner: `${details.banner.replace(/\\/g, '/')}`,
+      mainImage: `${details.mainimage.replace(/\\/g, '/')}`,
     };
 
     console.log(responseData); // For debugging
