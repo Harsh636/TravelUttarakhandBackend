@@ -16,99 +16,199 @@ const app = express();
 
 // yesssssssssssssssssssssss
 // dsfsfdfsadf
-
-// middleware
+// Middleware for serving static files
 app.use('/uploads', express.static('uploads'));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.urlencoded({extended: false}));
-app.use(cors());
-app.use(express.json()); //req.body
 
-// app.use(
-//   cors({
-//     origin: "https://traveluttarakhand.netlify.app",
-//   })
-// );
-//Storeing image into uploads folder using multer and changing image name using Date.now() to prevent same name
+// Middleware for parsing URL-encoded bodies
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
+app.use(cors()); // Enable CORS for all origins
+app.use(express.json()); // Parse JSON bodies
+
+// Multer storage configuration for handling file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "./uploads"); 
+    cb(null, "./uploads"); // Specify the upload directory
   },
   filename: function (req, file, cb) {
+    // Use Date.now() to prevent file name collisions
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
-const upload = multer({storage: storage});
+const upload = multer({ storage: storage });
 
+// Connect to the database
 db.connect();
 
-// create a track
+// Create a new trek
 app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]), async (req, res) => { 
+  // Retrieve file paths from the uploaded files
   const imagePath = req.files.image ? req.files.image[0].path : null;
   const bannerPath = req.files.banner ? req.files.banner[0].path : null;
   const mainImagePath = req.files.mainImage ? req.files.mainImage[0].path : null;
-    try {
-      const {
-        name,
-        duration,
-        difficulty,
-        realPrice,
-        discountedPrice,
-        heading,
-        overview,
-        highlight,
-        itinerary,
-        itinerary_details,
+
+  try {
+    // Destructure values from req.body
+    const {
+      name,
+      duration,
+      difficulty,
+      realPrice,
+      discountedPrice,
+      heading,
+      overview,
+      highlight,
+      itinerary,
+      itinerary_details,
+      altitude,
+      distance,
+      transportation,
+      meals,
+      season,
+      trek_type,
+    } = req.body;
+
+    // Prepare SQL insert statement
+    const insertQuery = `
+      INSERT INTO treks (name, duration, difficulty, realprice, discountedprice, image, banner, mainimage, heading, details, overview, highlight, itinerary)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *;
+    `;
+    
+    // Prepare values for the insert
+    const values = [
+      name,
+      duration,
+      difficulty,
+      parseFloat(realPrice), // Ensure prices are parsed as floats
+      parseFloat(discountedPrice), // Ensure prices are parsed as floats
+      imagePath,
+      bannerPath,
+      mainImagePath,
+      heading,
+      JSON.stringify({
         altitude,
         distance,
         transportation,
         meals,
-        season,
-        trek_type,
-      } = req.body;
-      
-      const insertQuery = `
-      INSERT INTO treks (name, duration, difficulty, realprice, discountedprice, image, banner, mainimage, heading, details, overview, highlight, itinerary)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING *;
-      `;
-      const values = [
-        name,
-        duration,
-        difficulty,
-        parseFloat(realPrice),
-        parseFloat(discountedPrice),
-        imagePath,
-        bannerPath,
-        mainImagePath,
-        heading,
-        JSON.stringify({
-          altitude,
-          distance,
-          transportation,
-          meals,
-          bestSeason: season,
-          trekType: trek_type,
-        }),
-        overview,
-        highlight,
-        JSON.stringify({
-          dayHighlight: itinerary,
-          dayExplain: itinerary_details,
-        }),
-      ];
+        bestSeason: season,
+        trekType: trek_type,
+      }),
+      overview,
+      highlight,
+      JSON.stringify({
+        dayHighlight: itinerary,
+        dayExplain: itinerary_details,
+      }),
+    ];
 
-      console.log("Values being inserted:", values);
-      const result = await db.query(insertQuery, values);
-      res.status(200).json(result.rows[0]);
-    } catch (err) {
-      console.error("Database error:", err);
-      res
-        .status(500)
-        .send("Error occurred while uploading the trek: " + err.message);
-    }
+    console.log("Values being inserted:", values);
+
+    // Execute the insert query
+    const result = await db.query(insertQuery, values);
+    
+    // Respond with the newly created trek
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    // Log and send error details
+    console.error("Database error:", err);
+    res.status(500).json({ message: "Error occurred while uploading the trek", error: err.message });
   }
-);
+});
+
+
+// // middleware
+// app.use('/uploads', express.static('uploads'));
+// app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(express.urlencoded({extended: false}));
+// app.use(cors());
+// app.use(express.json()); //req.body
+
+// // app.use(
+// //   cors({
+// //     origin: "https://traveluttarakhand.netlify.app",
+// //   })
+// // );
+// //Storeing image into uploads folder using multer and changing image name using Date.now() to prevent same name
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "./uploads"); 
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, `${Date.now()}-${file.originalname}`);
+//   },
+// });
+// const upload = multer({storage: storage});
+
+// db.connect();
+
+// // create a track
+// app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]), async (req, res) => { 
+//   const imagePath = req.files.image ? req.files.image[0].path : null;
+//   const bannerPath = req.files.banner ? req.files.banner[0].path : null;
+//   const mainImagePath = req.files.mainImage ? req.files.mainImage[0].path : null;
+//     try {
+//       const {
+//         name,
+//         duration,
+//         difficulty,
+//         realPrice,
+//         discountedPrice,
+//         heading,
+//         overview,
+//         highlight,
+//         itinerary,
+//         itinerary_details,
+//         altitude,
+//         distance,
+//         transportation,
+//         meals,
+//         season,
+//         trek_type,
+//       } = req.body;
+      
+//       const insertQuery = `
+//       INSERT INTO treks (name, duration, difficulty, realprice, discountedprice, image, banner, mainimage, heading, details, overview, highlight, itinerary)
+//       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+//       RETURNING *;
+//       `;
+//       const values = [
+//         name,
+//         duration,
+//         difficulty,
+//         parseFloat(realPrice),
+//         parseFloat(discountedPrice),
+//         imagePath,
+//         bannerPath,
+//         mainImagePath,
+//         heading,
+//         JSON.stringify({
+//           altitude,
+//           distance,
+//           transportation,
+//           meals,
+//           bestSeason: season,
+//           trekType: trek_type,
+//         }),
+//         overview,
+//         highlight,
+//         JSON.stringify({
+//           dayHighlight: itinerary,
+//           dayExplain: itinerary_details,
+//         }),
+//       ];
+
+//       console.log("Values being inserted:", values);
+//       const result = await db.query(insertQuery, values);
+//       res.status(200).json(result.rows[0]);
+//     } catch (err) {
+//       console.error("Database error:", err);
+//       res
+//         .status(500)
+//         .send("Error occurred while uploading the trek: " + err.message);
+//     }
+//   }
+// );
 
 
 // GET ALL TRACK
