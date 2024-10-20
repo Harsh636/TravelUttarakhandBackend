@@ -55,7 +55,7 @@ db.connect();
 // Create a new trek
 app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]), async (req, res) => { 
   // Retrieve file paths from the uploaded files
-  const baseURL = `${req.protocol}://${req.get('host')}/uploads/`;
+  const baseURL = `${req.protocol}s://${req.get('host')}/uploads/`;
 
   const imagePath = req.files.image ? `${baseURL}${req.files.image[0].filename}` : null;
   const bannerPath = req.files.banner ? `${baseURL}${req.files.banner[0].filename}` : null;
