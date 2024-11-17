@@ -4,7 +4,6 @@ import bodyParser from "body-parser";
 import multer from "multer";
 import db from "./db.js";
 import dotenv from "dotenv";
-import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -50,7 +49,35 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Connect to the database
-db.connect();
+// db.connect();
+
+app.post("/create-and-insert-simple", async (req, res) => {
+  try {
+    // Create a simple table
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS example_table (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        age INT NOT NULL
+      );
+    `;
+    await db.query(createTableQuery);
+
+    // Insert values into the simple table
+    const { name, age } = req.body;
+    const insertQuery = `
+      INSERT INTO example_table (name, age)
+      VALUES (?, ?);
+    `;
+
+    await db.query(insertQuery, [name, age]);
+
+    res.status(200).send("Simple table created and values inserted successfully.");
+  } catch (error) {
+    console.error("Error creating table or inserting values:", error);
+    res.status(500).send("An error occurred.");
+  }
+});
 
 // Create a new trek
 app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { name: "mainImage" }]), async (req, res) => { 
@@ -84,10 +111,11 @@ app.post("/new-trek", upload.fields([{ name: "image" }, { name: "banner" }, { na
 
     // Prepare SQL insert statement
     const insertQuery = `
-      INSERT INTO treks (name, duration, difficulty, realprice, discountedprice, image, banner, mainimage, heading, details, overview, highlight, itinerary)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING *;
-    `;
+  INSERT INTO treks (name, duration, difficulty, realprice, discountedprice, image, banner, mainimage, heading, details, overview, highlight, itinerary)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  RETURNING *;
+`;
+
     
     // Prepare values for the insert
     const values = [
@@ -260,7 +288,7 @@ app.get("/trekdetails/:id", async (req, res) => {
   try {
     // Query to fetch trek details based on ID
     const trekDetailsQuery = `
-      SELECT id, banner, mainimage, name, duration, difficulty, heading, details, overview, highlight, itinerary FROM treks WHERE id = $1;
+      SELECT id, banner, mainimage, name, duration, difficulty, heading, details, overview, highlight, itinerary FROM treks WHERE id = ?;
     `;
     const values = [id]; // Pass the trek ID to the query
     const result = await db.query(trekDetailsQuery, values); // Execute query
